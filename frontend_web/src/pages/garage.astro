@@ -1,5 +1,21 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import VehicleCard from '../components/VehicleCard.astro';
+
+// Simple vehicle catalog (could be externalized later)
+type Vehicle = { id: string; name: string; topSpeed: number; accel: number; handling: number; };
+const vehicles: Vehicle[] = [
+  { id: 'falcon-s', name: 'Falcon S', topSpeed: 320, accel: 82, handling: 76 },
+  { id: 'aurora-gt', name: 'Aurora GT', topSpeed: 300, accel: 77, handling: 84 },
+  { id: 'comet-r', name: 'Comet R', topSpeed: 315, accel: 80, handling: 72 },
+  { id: 'nebula-x', name: 'Nebula X', topSpeed: 290, accel: 88, handling: 86 },
+  { id: 'vortex-9', name: 'Vortex 9', topSpeed: 330, accel: 70, handling: 68 },
+  { id: 'solstice', name: 'Solstice', topSpeed: 285, accel: 92, handling: 90 },
+];
+
+// During SSR we can't access localStorage; client script will manage highlighting.
+// For initial render, we don't know selectedId; pass null. Client will refresh.
+const selectedId: string | null = null;
 ---
 
 <Layout>
@@ -14,32 +30,17 @@ import Layout from '../layouts/Layout.astro';
     <div class="filters surface card" style="margin-bottom:1rem">
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
         <span class="badge">Filter</span>
-        <button class="btn" type="button">All</button>
-        <button class="btn" type="button">Speed</button>
-        <button class="btn" type="button">Handling</button>
-        <button class="btn" type="button">Acceleration</button>
+        <button class="btn" type="button" data-filter="all">All</button>
+        <button class="btn" type="button" data-filter="speed">Speed</button>
+        <button class="btn" type="button" data-filter="handling">Handling</button>
+        <button class="btn" type="button" data-filter="accel">Acceleration</button>
       </div>
     </div>
 
-    <div class="vehicle-grid" role="list" aria-label="Vehicles">
-      <!-- TODO: Replace placeholders with multiple <VehicleCard /> instances -->
-      <div class="vehicle-card surface card" role="listitem" tabindex="0" aria-label="Vehicle card placeholder">
-        <h2 style="margin:0 0 .25rem 0;">VehicleCard</h2>
-        <p class="placeholder" style="margin:0">Example vehicle with stats preview.</p>
-        <div style="margin-top:.75rem;display:flex;gap:.5rem">
-          <button class="btn btn-primary" type="button">Select</button>
-          <button class="btn" type="button">Details</button>
-        </div>
-      </div>
-
-      <div class="vehicle-card surface card" role="listitem" tabindex="0" aria-label="Vehicle card placeholder">
-        <h2 style="margin:0 0 .25rem 0;">VehicleCard</h2>
-        <p class="placeholder" style="margin:0">Another sample vehicle.</p>
-        <div style="margin-top:.75rem;display:flex;gap:.5rem">
-          <button class="btn btn-primary" type="button">Select</button>
-          <button class="btn" type="button">Details</button>
-        </div>
-      </div>
+    <div class="vehicle-grid" role="list" aria-label="Vehicles" id="vehicle-grid">
+      {vehicles.map(v => (
+        <VehicleCard id={v.id} name={v.name} topSpeed={v.topSpeed} accel={v.accel} handling={v.handling} selectedId={selectedId} />
+      ))}
     </div>
 
     <p class="placeholder" style="margin:1rem 0 0 0">
@@ -61,4 +62,50 @@ import Layout from '../layouts/Layout.astro';
       .vehicle-grid { grid-template-columns: 1fr; }
     }
   </style>
+
+  <script type="module" client:load>
+    // Refresh selected highlight on vehicle:selected events
+    const KEY = 'sr:selectedVehicle';
+    function readSelected(): string | null {
+      try { return localStorage.getItem(KEY); } catch { return null; }
+    }
+
+    function updateHighlights() {
+      const selected = readSelected();
+      const cards = document.querySelectorAll<HTMLElement>('.vehicle-card');
+      cards.forEach(card => {
+        const id = card.getAttribute('data-vehicle-id');
+        const btn = card.querySelector<HTMLButtonElement>('button[data-action="select"]');
+        if (id && selected === id) {
+          card.classList.add('is-selected');
+          btn?.setAttribute('aria-pressed', 'true');
+          if (btn) {
+            btn.textContent = 'Selected';
+            btn.classList.remove('btn-primary');
+          }
+        } else {
+          card.classList.remove('is-selected');
+          btn?.setAttribute('aria-pressed', 'false');
+          if (btn) {
+            btn.textContent = 'Select';
+            btn.classList.add('btn-primary');
+          }
+        }
+      });
+    }
+
+    window.addEventListener('vehicle:selected', updateHighlights);
+    // Also sync on visibility change or initial load
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) updateHighlights(); });
+    updateHighlights();
+
+    // Simple filter demo: not functional filtering of list items; just a stub highlight.
+    const filterButtons = document.querySelectorAll<HTMLButtonElement>('[data-filter]');
+    filterButtons.forEach(b => {
+      b.addEventListener('click', () => {
+        filterButtons.forEach(o => o.classList.remove('btn-secondary'));
+        b.classList.add('btn-secondary');
+      });
+    });
+  </script>
 </Layout>

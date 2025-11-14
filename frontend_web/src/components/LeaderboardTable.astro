@@ -1,0 +1,138 @@
+---
+/**
+ * LeaderboardTable.astro
+ * Renders a leaderboard using getLeaderboard() with graceful fallback
+ * to localStorage/mock provided by src/lib/net/api.ts when needed.
+ */
+import type { LeaderboardEntry } from '../lib/net/api';
+import { getLeaderboard } from '../lib/net/api';
+
+interface Props {
+  title?: string;
+}
+const { title = 'Top Times' } = Astro.props as Props;
+
+// We render skeleton markup, then hydrate client:load to fetch and populate.
+---
+
+<section class="lb surface card" role="region" aria-label="Leaderboard">
+  <header class="lb-headerbar">
+    <h2 style="margin:0">{title}</h2>
+    <div class="actions" style="display:flex;gap:.5rem">
+      <button class="btn" id="lb-refresh" type="button" aria-label="Refresh leaderboard">Refresh</button>
+    </div>
+  </header>
+
+  <div role="table" class="lb-table" aria-describedby="lb-note">
+    <div role="rowgroup" class="lb-header">
+      <div role="row" class="lb-row">
+        <div role="columnheader" class="lb-cell">Rank</div>
+        <div role="columnheader" class="lb-cell">Player</div>
+        <div role="columnheader" class="lb-cell">Vehicle</div>
+        <div role="columnheader" class="lb-cell">Best Time</div>
+      </div>
+    </div>
+    <div role="rowgroup" class="lb-body" id="lb-body">
+      <div class="lb-empty placeholder" role="note" id="lb-note">
+        Loading leaderboard…
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .lb-headerbar {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:.75rem;
+    margin-bottom:.5rem;
+  }
+  .lb-table { width: 100%; }
+  .lb-header { border-bottom: 1px solid rgba(17,24,39,0.08); }
+  .lb-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 1fr 150px;
+    gap: .5rem;
+    padding: .5rem .25rem;
+  }
+  .lb-cell { font-weight: 600; }
+  .lb-body .lb-row { font-weight: 400; }
+  .lb-empty { padding: .75rem; }
+  @media (max-width: 640px) {
+    .lb-row { grid-template-columns: 60px 1fr; }
+    .lb-row .lb-cell:nth-child(3),
+    .lb-row .lb-cell:nth-child(4) { display: none; }
+  }
+</style>
+
+<script type="module" client:load>
+  import { getLeaderboard } from '../lib/net/api';
+
+  const body = document.getElementById('lb-body')!;
+  const refreshBtn = document.getElementById('lb-refresh')!;
+
+  function formatMs(ms: number): string {
+    // mm:ss.mmm
+    const minutes = Math.floor(ms / 60000);
+    const seconds = Math.floor((ms % 60000) / 1000);
+    const millis = Math.floor(ms % 1000);
+    const mm = String(minutes).padStart(2, '0');
+    const ss = String(seconds).padStart(2, '0');
+    const mmm = String(millis).padStart(3, '0');
+    return `${mm}:${ss}.${mmm}`;
+  }
+
+  function renderRows(items: any[]) {
+    body.innerHTML = '';
+    if (!items || !items.length) {
+      const empty = document.createElement('div');
+      empty.className = 'lb-empty placeholder';
+      empty.setAttribute('role', 'note');
+      empty.textContent = 'No leaderboard data yet. Complete a race to see results here.';
+      body.appendChild(empty);
+      return;
+    }
+
+    items.forEach((e: any, idx: number) => {
+      const row = document.createElement('div');
+      row.className = 'lb-row';
+      row.setAttribute('role', 'row');
+
+      const cRank = document.createElement('div');
+      cRank.className = 'lb-cell';
+      cRank.setAttribute('role', 'cell');
+      cRank.textContent = String(idx + 1);
+
+      const cPlayer = document.createElement('div');
+      cPlayer.className = 'lb-cell';
+      cPlayer.setAttribute('role', 'cell');
+      cPlayer.textContent = e.player ?? '—';
+
+      const cVehicle = document.createElement('div');
+      cVehicle.className = 'lb-cell';
+      cVehicle.setAttribute('role', 'cell');
+      cVehicle.textContent = e.vehicle ?? '—';
+
+      const cTime = document.createElement('div');
+      cTime.className = 'lb-cell';
+      cTime.setAttribute('role', 'cell');
+      cTime.textContent = typeof e.bestTimeMs === 'number' ? formatMs(e.bestTimeMs) : '—';
+
+      row.append(cRank, cPlayer, cVehicle, cTime);
+      body.appendChild(row);
+    });
+  }
+
+  async function load() {
+    try {
+      const items = await getLeaderboard();
+      renderRows(Array.isArray(items) ? items : []);
+    } catch {
+      renderRows([]);
+    }
+  }
+
+  refreshBtn.addEventListener('click', load);
+  load();
+</script>

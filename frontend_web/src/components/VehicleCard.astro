@@ -1,0 +1,154 @@
+---
+/**
+ * VehicleCard.astro
+ * Displays a vehicle card with name, stats, and selection actions.
+ * Selection is persisted in localStorage under key "sr:selectedVehicle".
+ *
+ * Props:
+ * - id: string (unique id)
+ * - name: string
+ * - topSpeed: number (km/h, visual only)
+ * - accel: number (0-100, visual)
+ * - handling: number (0-100, visual)
+ * - selectedId?: string (id currently selected to style active)
+ */
+interface Props {
+  id: string;
+  name: string;
+  topSpeed: number;
+  accel: number; // 0-100
+  handling: number; // 0-100
+  selectedId?: string | null;
+}
+const { id, name, topSpeed, accel, handling, selectedId = null } = Astro.props as Props;
+const isSelected = selectedId === id;
+---
+
+<article
+  class={`vehicle-card surface card ${isSelected ? 'is-selected' : ''}`}
+  role="listitem"
+  aria-labelledby={`vehicle-${id}-title`}
+  tabindex="0"
+  data-vehicle-id={id}
+>
+  <header style="display:flex;align-items:center;justify-content:space-between;gap:.5rem">
+    <h2 id={`vehicle-${id}-title`} style="margin:0">{name}</h2>
+    {isSelected ? <span class="badge" title="Currently selected">Selected</span> : null}
+  </header>
+
+  <p class="placeholder" style="margin:.25rem 0 .75rem 0">
+    Top speed {topSpeed} km/h · Accel {accel}% · Handling {handling}%
+  </p>
+
+  <div class="stats">
+    <div class="stat">
+      <label for={`speed-${id}`}>Speed</label>
+      <progress id={`speed-${id}`} max="400" value={topSpeed} />
+    </div>
+    <div class="stat">
+      <label for={`accel-${id}`}>Acceleration</label>
+      <progress id={`accel-${id}`} max="100" value={accel} />
+    </div>
+    <div class="stat">
+      <label for={`handling-${id}`}>Handling</label>
+      <progress id={`handling-${id}`} max="100" value={handling} />
+    </div>
+  </div>
+
+  <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap">
+    <button
+      class={`btn ${isSelected ? '' : 'btn-primary'}`}
+      type="button"
+      data-action="select"
+      aria-pressed={isSelected ? 'true' : 'false'}
+      aria-label={isSelected ? `Selected ${name}` : `Select ${name}`}
+    >
+      {isSelected ? 'Selected' : 'Select'}
+    </button>
+    <button class="btn" type="button" data-action="details" aria-label={`View details for ${name}`}>Details</button>
+  </div>
+</article>
+
+<style>
+  .vehicle-card.is-selected {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 0;
+    box-shadow: var(--shadow-md);
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0,1fr));
+    gap: .5rem;
+  }
+  .stat label {
+    font-size: .8rem;
+    opacity: .75;
+    display: block;
+    margin-bottom: .25rem;
+  }
+  progress {
+    width: 100%;
+    height: 8px;
+    appearance: none;
+    -webkit-appearance: none;
+    border: none;
+    background: rgba(17,24,39,0.08);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  progress::-webkit-progress-bar {
+    background: rgba(17,24,39,0.08);
+    border-radius: 999px;
+  }
+  progress::-webkit-progress-value {
+    background: linear-gradient(90deg, var(--color-primary), #3b82f6);
+  }
+  :global(body.dark-theme) progress::-webkit-progress-bar {
+    background: rgba(255,255,255,0.15);
+  }
+</style>
+
+<script type="module" client:load>
+  // Handles selection and details actions with localStorage persistence.
+  const KEY = 'sr:selectedVehicle';
+
+  function initVehicleCard(root: HTMLElement) {
+    const id = root.getAttribute('data-vehicle-id')!;
+    const selectBtn = root.querySelector<HTMLButtonElement>('button[data-action="select"]');
+    const detailsBtn = root.querySelector<HTMLButtonElement>('button[data-action="details"]');
+
+    function readSelected(): string | null {
+      try { return localStorage.getItem(KEY); } catch { return null; }
+    }
+    function writeSelected(v: string) {
+      try { localStorage.setItem(KEY, v); } catch {}
+    }
+
+    selectBtn?.addEventListener('click', () => {
+      writeSelected(id);
+      // Dispatch a custom event so the parent page can re-render highlighted state
+      window.dispatchEvent(new CustomEvent('vehicle:selected', { detail: { id } }));
+    });
+
+    detailsBtn?.addEventListener('click', () => {
+      // Placeholder: could navigate to dedicated details page later
+      alert(`Vehicle: ${id}`);
+    });
+
+    // Reflect state on mount
+    const selected = readSelected();
+    if (selected === id) {
+      root.classList.add('is-selected');
+      selectBtn?.setAttribute('aria-pressed', 'true');
+      if (selectBtn) selectBtn.textContent = 'Selected';
+      selectBtn?.classList.remove('btn-primary');
+    } else {
+      root.classList.remove('is-selected');
+      selectBtn?.setAttribute('aria-pressed', 'false');
+    }
+  }
+
+  // Initialize this specific instance
+  const el = document.currentScript?.closest('.vehicle-card') as HTMLElement | null;
+  if (el) initVehicleCard(el);
+</script>

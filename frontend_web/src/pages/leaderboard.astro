@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import LeaderboardTable from '../components/LeaderboardTable.astro';
 ---
 
 <Layout>
@@ -7,47 +8,10 @@ import Layout from '../layouts/Layout.astro';
     <header style="margin-bottom:1rem">
       <h1 id="leaderboard-title" style="margin:0">Leaderboard</h1>
       <p class="placeholder" style="margin:.25rem 0 0 0">
-        Top times across races. This page will render a sortable leaderboard table.
+        Top times across races. Data loads from backend if configured, with local fallback.
       </p>
     </header>
 
-    <div class="surface card" role="region" aria-label="Leaderboard table">
-      <!-- TODO: Replace with <LeaderboardTable /> -->
-      <div role="table" class="lb-table">
-        <div role="rowgroup" class="lb-header">
-          <div role="row" class="lb-row">
-            <div role="columnheader" class="lb-cell">Rank</div>
-            <div role="columnheader" class="lb-cell">Player</div>
-            <div role="columnheader" class="lb-cell">Vehicle</div>
-            <div role="columnheader" class="lb-cell">Best Time</div>
-          </div>
-        </div>
-        <div role="rowgroup" class="lb-body">
-          <!-- Empty state until wired -->
-          <div class="lb-empty placeholder" role="note">
-            No leaderboard data yet. Complete a race to see results here.
-          </div>
-        </div>
-      </div>
-    </div>
+    <LeaderboardTable title="Top Times" />
   </section>
-
-  <style>
-    .lb-table { width: 100%; }
-    .lb-header { border-bottom: 1px solid rgba(17,24,39,0.08); }
-    .lb-row {
-      display: grid;
-      grid-template-columns: 80px 1fr 1fr 150px;
-      gap: .5rem;
-      padding: .5rem .25rem;
-    }
-    .lb-cell { font-weight: 600; }
-    .lb-body .lb-row { font-weight: 400; }
-    .lb-empty { padding: .75rem; }
-    @media (max-width: 640px) {
-      .lb-row { grid-template-columns: 60px 1fr; }
-      .lb-row .lb-cell:nth-child(3),
-      .lb-row .lb-cell:nth-child(4) { display: none; }
-    }
-  </style>
 </Layout>
