@@ -1,0 +1,83 @@
+---
+/**
+ * GameCanvas.astro
+ * Minimal game canvas scaffolding with a client:load script stub.
+ * Renders a responsive canvas with accessible labeling and a data-testid for tests.
+ */
+const { ariaLabel = 'Race game canvas' } = Astro.props;
+---
+
+<div class="game-canvas-wrapper">
+  <canvas
+    id="game-canvas"
+    data-testid="game-canvas"
+    aria-label={ariaLabel}
+    role="img"
+    width="1280"
+    height="720"
+  >
+    Your browser does not support the HTML5 canvas element.
+  </canvas>
+</div>
+
+<style>
+  .game-canvas-wrapper {
+    position: relative;
+    width: 100%;
+    min-height: 320px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+  }
+  #game-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 70vh;
+    background: radial-gradient(600px 300px at 20% 0%, rgba(37, 99, 235, 0.08), transparent 60%),
+                linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.35));
+    border: 1px solid rgba(17, 24, 39, 0.06);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  :global(body.dark-theme) #game-canvas {
+    background: radial-gradient(600px 300px at 20% 0%, rgba(37, 99, 235, 0.12), transparent 60%),
+                linear-gradient(180deg, rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.35));
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+</style>
+
+<script client:load>
+  // PUBLIC_INTERFACE
+  /** Initializes the canvas context and sets up a basic animation frame loop stub. */
+  function initGameCanvas() {
+    /** This is a public function. */
+  }
+
+  (function setup() {
+    const canvas = document.getElementById('game-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    // Simple visual to confirm canvas is active (temporary)
+    if (ctx) {
+      ctx.fillStyle = 'rgba(37, 99, 235, 0.12)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#2563EB';
+      ctx.font = '20px system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial';
+      ctx.fillText('GameCanvas mounted (stub)', 24, 40);
+    }
+
+    // Animation loop stub (no game engine yet)
+    let rafId = 0;
+    const loop = () => {
+      // Future: update physics, render track and vehicles
+      rafId = requestAnimationFrame(loop);
+    };
+    rafId = requestAnimationFrame(loop);
+
+    // Clean up on page navigation
+    window.addEventListener('pagehide', () => cancelAnimationFrame(rafId), { once: true });
+  })();
+</script>

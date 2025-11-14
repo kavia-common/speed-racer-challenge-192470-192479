@@ -1,0 +1,43 @@
+---
+/**
+ * ControlsPanel.astro
+ * On-screen controls and keyboard hints (no logic yet).
+ * Emits accessible buttons for Start, Pause, Reset and shows keyboard guide.
+ */
+const { title = 'Controls' } = Astro.props;
+---
+
+<section class="controls" role="region" aria-label="Controls panel">
+  <header class="controls-header">
+    <h2>{title}</h2>
+  </header>
+
+  <div class="controls-actions">
+    <button class="btn btn-primary" type="button" aria-label="Start race" data-testid="btn-start">
+      ▶ Start
+    </button>
+    <button class="btn" type="button" aria-label="Pause race" data-testid="btn-pause">
+      ⏸ Pause
+    </button>
+    <button class="btn" type="button" aria-label="Reset race" data-testid="btn-reset">
+      ⟲ Reset
+    </button>
+  </div>
+
+  <div class="controls-hints" aria-live="polite">
+    <p class="placeholder">
+      Keyboard: Arrow keys / WASD to steer · Space to brake · Enter to start
+    </p>
+  </div>
+</section>
+
+<style>
+  .controls-header { margin-bottom: .5rem; }
+  .controls-header h2 { margin: 0; font-size: 1.1rem; }
+  .controls-actions {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+  }
+  .controls-hints { margin-top: .75rem; }
+</style>

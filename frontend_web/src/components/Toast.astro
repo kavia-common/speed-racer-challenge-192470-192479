@@ -1,0 +1,42 @@
+---
+/**
+ * Toast.astro
+ * Simple toast container scaffolding; renders a region with a message slot.
+ * Usage:
+ *   <Toast>Get ready!</Toast>
+ */
+interface Props {
+  kind?: 'info' | 'success' | 'error';
+  ariaLive?: 'polite' | 'assertive' | 'off';
+  id?: string;
+}
+const { kind = 'info', ariaLive = 'polite', id = 'toast' } = Astro.props as Props;
+---
+
+<div
+  id={id}
+  class={`toast ${kind}`}
+  role="status"
+  aria-live={ariaLive}
+  data-testid="toast"
+>
+  <slot>Notification</slot>
+</div>
+
+<style>
+  .toast {
+    position: sticky;
+    top: 0.5rem;
+    margin: 0 0 0 auto;
+    max-width: 420px;
+    padding: .75rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(17, 24, 39, 0.06);
+    box-shadow: var(--shadow-md);
+    background: var(--color-surface);
+    z-index: 20;
+  }
+  .toast.info { border-color: rgba(37, 99, 235, 0.25); }
+  .toast.success { border-color: rgba(245, 158, 11, 0.35); }
+  .toast.error { border-color: rgba(239, 68, 68, 0.35); }
+</style>

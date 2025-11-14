@@ -1,0 +1,80 @@
+---
+/**
+ * HUD.astro
+ * Heads-up display scaffolding showing placeholders for speed, lap, and timer.
+ * Accepts optional props for values but defaults to placeholders.
+ */
+interface Props {
+  speed?: string;
+  lap?: string;
+  timer?: string;
+  title?: string;
+}
+const {
+  speed = '0 km/h',
+  lap = '0 / 3',
+  timer = '00:00.000',
+  title = 'HUD',
+} = Astro.props as Props;
+---
+
+<section class="hud" role="region" aria-label="Heads-up display">
+  <header class="hud-header">
+    <h2>{title}</h2>
+    <span class="badge">Live</span>
+  </header>
+
+  <dl class="hud-stats">
+    <div class="stat">
+      <dt>Speed</dt>
+      <dd data-testid="hud-speed">{speed}</dd>
+    </div>
+    <div class="stat">
+      <dt>Lap</dt>
+      <dd data-testid="hud-lap">{lap}</dd>
+    </div>
+    <div class="stat">
+      <dt>Time</dt>
+      <dd data-testid="hud-timer">{timer}</dd>
+    </div>
+  </dl>
+</section>
+
+<style>
+  .hud { display: block; }
+  .hud-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    margin-bottom: .5rem;
+  }
+  .hud-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+  .hud-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .75rem;
+    margin: 0;
+  }
+  .stat {
+    background: var(--color-surface);
+    border: 1px solid rgba(17,24,39,0.06);
+    border-radius: var(--radius-md);
+    padding: .75rem;
+    box-shadow: var(--shadow-sm);
+  }
+  .stat dt {
+    font-size: .8rem;
+    opacity: .75;
+  }
+  .stat dd {
+    margin: .25rem 0 0 0;
+    font-weight: 700;
+  }
+  @media (max-width: 640px) {
+    .hud-stats { grid-template-columns: 1fr; }
+  }
+</style>

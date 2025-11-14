@@ -1,5 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import GameCanvas from '../components/GameCanvas.astro';
+import HUD from '../components/HUD.astro';
+import ControlsPanel from '../components/ControlsPanel.astro';
+import Toast from '../components/Toast.astro';
 ---
 
 <Layout>
@@ -16,35 +20,19 @@ import Layout from '../layouts/Layout.astro';
       </div>
     </header>
 
+    <Toast kind="info" ariaLive="polite">Press Enter to get ready…</Toast>
+
     <div class="race-grid">
       <div class="race-main surface card" aria-label="Game area">
-        <!-- TODO: Replace with <GameCanvas /> -->
-        <div class="placeholder" style="text-align:center;padding:1rem">
-          GameCanvas will render here (track, vehicles, physics)
-        </div>
+        <GameCanvas ariaLabel="Race track and vehicles" />
       </div>
 
       <div class="race-hud surface card" aria-label="Heads-up display">
-        <!-- TODO: Replace with <HUD /> -->
-        <h2 style="margin:0 0 .5rem 0;">HUD</h2>
-        <ul style="margin:0;padding-left:1.1rem;color:inherit">
-          <li class="placeholder">Speed: 0 km/h</li>
-          <li class="placeholder">Lap: 0 / 3</li>
-          <li class="placeholder">Time: 00:00.000</li>
-        </ul>
+        <HUD />
       </div>
 
       <div class="race-controls surface card" aria-label="Controls panel">
-        <!-- TODO: Replace with <ControlsPanel /> -->
-        <h2 style="margin:0 0 .5rem 0;">Controls</h2>
-        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-          <button class="btn btn-primary" type="button" aria-label="Start race">Start</button>
-          <button class="btn" type="button" aria-label="Pause race">Pause</button>
-          <button class="btn" type="button" aria-label="Reset race">Reset</button>
-        </div>
-        <p class="placeholder" style="margin:.75rem 0 0 0">
-          Keyboard: Arrow keys/WASD to steer. Space to brake. Enter to start.
-        </p>
+        <ControlsPanel />
       </div>
 
       <aside class="race-sidebar surface card" aria-label="Compact sidebar">
