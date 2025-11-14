@@ -35,8 +35,10 @@ const { ariaLabel = 'Race game canvas' } = Astro.props;
     width: 100%;
     height: auto;
     max-height: 70vh;
-    background: radial-gradient(600px 300px at 20% 0%, rgba(37, 99, 235, 0.08), transparent 60%),
-                linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.35));
+    background:
+      url('/assets/track_pattern.svg') center/cover no-repeat,
+      radial-gradient(600px 300px at 20% 0%, rgba(37, 99, 235, 0.08), transparent 60%),
+      linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.35));
     border: 1px solid rgba(17, 24, 39, 0.06);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
