@@ -42,6 +42,8 @@ const { ariaLabel = 'Race game canvas' } = Astro.props;
     border: 1px solid rgba(17, 24, 39, 0.06);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
+    pointer-events: auto; /* ensure canvas receives pointer/touch */
+    z-index: 1; /* keep below overlays like controls panel if overlapping */
   }
 
   :global(body.dark-theme) #game-canvas {
@@ -56,6 +58,11 @@ const { ariaLabel = 'Race game canvas' } = Astro.props;
   import { createCar, integrateCar } from '../lib/game/physics';
   import { createSingleTrack, renderTrack, checkCheckpointHit } from '../lib/game/track';
   import { attachKeyboardInput, attachTouchInput } from '../lib/game/input';
+
+  function log(...args) {
+    // eslint-disable-next-line no-console
+    console.debug('[GameCanvas]', ...args);
+  }
 
   // PUBLIC_INTERFACE
   /**
@@ -160,10 +167,40 @@ const { ariaLabel = 'Race game canvas' } = Astro.props;
       targetFPS: 60,
     });
 
+    // Expose a minimal control bridge for fallback/direct control
+    // This helps if CustomEvents are not delivered for some reason.
+    // Methods are safe to call at any time.
+    window.__gameCanvasBridge = {
+      start: () => {
+        const s = engine.getState();
+        log('bridge.start()', s);
+        if (!s.running) {
+          engineCtx.startTime = performance.now();
+          engine.start();
+        } else if (s.paused) {
+          engine.resume();
+        }
+      },
+      pause: () => {
+        log('bridge.pause()');
+        engine.pause();
+      },
+      reset: () => {
+        log('bridge.reset()');
+        engine.stop();
+        engineCtx.car = createCar(140, 140);
+        engineCtx.nextCheckpointId = 0;
+        engineCtx.laps = 0;
+        engine.start();
+        engine.pause();
+      },
+      getState: () => engine.getState(),
+    };
+
     // Listen for events from ControlsPanel (or other sources)
     function onStart() {
-      // If engine not running or paused, start/resume
       const s = engine.getState();
+      log('event game:start, state=', s);
       if (!s.running) {
         engineCtx.startTime = performance.now();
         engine.start();
@@ -172,9 +209,11 @@ const { ariaLabel = 'Race game canvas' } = Astro.props;
       }
     }
     function onPause() {
+      log('event game:pause');
       engine.pause();
     }
     function onReset() {
+      log('event game:reset');
       // Stop and reinitialize the context (simple reset)
       engine.stop();
       // Reset car and state
@@ -187,18 +226,17 @@ const { ariaLabel = 'Race game canvas' } = Astro.props;
       engine.pause();
     }
 
+    // Register listeners as early as possible
     window.addEventListener('game:start', onStart);
     window.addEventListener('game:pause', onPause);
     window.addEventListener('game:reset', onReset);
-
-    // Do not auto-start; wait for Start action
-    // engine.start();
 
     // Clean up on pagehide/unload
     const cleanup = () => {
       window.removeEventListener('game:start', onStart);
       window.removeEventListener('game:pause', onPause);
       window.removeEventListener('game:reset', onReset);
+      try { delete window.__gameCanvasBridge; } catch {}
       engine.stop();
       engineCtx.inputKeyboard?.cleanup();
       engineCtx.inputTouch?.cleanup();
@@ -214,7 +252,15 @@ const { ariaLabel = 'Race game canvas' } = Astro.props;
   // Boot
   (function setup() {
     const canvas = document.getElementById('game-canvas');
-    if (!(canvas instanceof HTMLCanvasElement)) return;
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      log('canvas not found');
+      return;
+    }
+    log('init');
     initGameCanvas(canvas);
   })();
+
+  // Type definition for bridge on Window
+  // @ts-expect-error augment window at runtime for bridge
+  window.__gameCanvasBridge = window.__gameCanvasBridge || undefined;
 </script>

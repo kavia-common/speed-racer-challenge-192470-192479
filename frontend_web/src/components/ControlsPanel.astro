@@ -7,7 +7,7 @@
 const { title = 'Controls' } = Astro.props;
 ---
 
-<section class="controls" role="region" aria-label="Controls panel">
+<section class="controls" role="region" aria-label="Controls panel" style="position:relative; z-index: 2;">
   <header class="controls-header">
     <h2>{title}</h2>
   </header>
@@ -48,10 +48,23 @@ const { title = 'Controls' } = Astro.props;
   const pauseBtn = document.getElementById('btn-pause');
   const resetBtn = document.getElementById('btn-reset');
 
-  function dispatch(type) {
-    window.dispatchEvent(new CustomEvent(`game:${type}`, { bubbles: true }));
+  function log(...args) {
+    // eslint-disable-next-line no-console
+    console.debug('[ControlsPanel]', ...args);
   }
 
+  function dispatch(type) {
+    try {
+      const evName = `game:${type}`;
+      log('dispatch', evName);
+      window.dispatchEvent(new CustomEvent(evName, { bubbles: true }));
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn('[ControlsPanel] dispatch error', err);
+    }
+  }
+
+  // Attach click handlers
   startBtn?.addEventListener('click', () => dispatch('start'));
   pauseBtn?.addEventListener('click', () => dispatch('pause'));
   resetBtn?.addEventListener('click', () => dispatch('reset'));
@@ -59,6 +72,7 @@ const { title = 'Controls' } = Astro.props;
   // Keyboard convenience: Enter starts/resumes, Space pauses.
   function onKeydown(e) {
     if (e.code === 'Enter') {
+      e.preventDefault();
       dispatch('start');
     } else if (e.code === 'Space') {
       // prevent page scroll when pausing
@@ -68,10 +82,50 @@ const { title = 'Controls' } = Astro.props;
   }
   window.addEventListener('keydown', onKeydown);
 
+  // Fallback: if CustomEvents somehow do not reach listeners, attempt direct engine control.
+  // The GameCanvas exposes a minimal control bridge on window.__gameCanvasBridge if available.
+  function ensureFallbackWire() {
+    const bridge = window.__gameCanvasBridge;
+    if (!bridge) {
+      // Try to locate canvas and poke it to ensure GameCanvas booted
+      const cv = document.getElementById('game-canvas');
+      if (!cv) {
+        log('fallback: canvas not found yet');
+      } else {
+        log('fallback: canvas present; waiting for GameCanvas bridge...');
+      }
+      return;
+    }
+    if (!startBtn || !pauseBtn || !resetBtn) return;
+    // Only add once
+    if ((startBtn as any)._fallbackBound) return;
+
+    log('fallback: binding direct bridge controls');
+    (startBtn as any)._fallbackBound = true;
+    startBtn.addEventListener('click', () => { try { bridge.start(); } catch {} });
+    pauseBtn.addEventListener('click', () => { try { bridge.pause(); } catch {} });
+    resetBtn.addEventListener('click', () => { try { bridge.reset(); } catch {} });
+  }
+
+  // Try soon after load; also retry a few times if bridge initializes late
+  let tries = 0;
+  const maxTries = 20;
+  const t = setInterval(() => {
+    tries += 1;
+    ensureFallbackWire();
+    if (tries >= maxTries || window.__gameCanvasBridge) clearInterval(t);
+  }, 250);
+
   // Cleanup when page is hidden/unloaded
   const cleanup = () => {
     window.removeEventListener('keydown', onKeydown);
+    clearInterval(t);
   };
   window.addEventListener('pagehide', cleanup, { once: true });
   window.addEventListener('beforeunload', cleanup, { once: true });
+
+  // Initial focus hint to improve keyboard usability
+  startBtn?.setAttribute('tabindex', '0');
+  pauseBtn?.setAttribute('tabindex', '0');
+  resetBtn?.setAttribute('tabindex', '0');
 </script>
