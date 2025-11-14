@@ -1,0 +1,64 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout>
+  <section aria-labelledby="garage-title">
+    <header style="margin-bottom:1rem">
+      <h1 id="garage-title" style="margin:0">Garage</h1>
+      <p class="placeholder" style="margin:.25rem 0 0 0">
+        Browse and select vehicles. Your selection will be stored in localStorage and applied in Race.
+      </p>
+    </header>
+
+    <div class="filters surface card" style="margin-bottom:1rem">
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+        <span class="badge">Filter</span>
+        <button class="btn" type="button">All</button>
+        <button class="btn" type="button">Speed</button>
+        <button class="btn" type="button">Handling</button>
+        <button class="btn" type="button">Acceleration</button>
+      </div>
+    </div>
+
+    <div class="vehicle-grid" role="list" aria-label="Vehicles">
+      <!-- TODO: Replace placeholders with multiple <VehicleCard /> instances -->
+      <div class="vehicle-card surface card" role="listitem" tabindex="0" aria-label="Vehicle card placeholder">
+        <h2 style="margin:0 0 .25rem 0;">VehicleCard</h2>
+        <p class="placeholder" style="margin:0">Example vehicle with stats preview.</p>
+        <div style="margin-top:.75rem;display:flex;gap:.5rem">
+          <button class="btn btn-primary" type="button">Select</button>
+          <button class="btn" type="button">Details</button>
+        </div>
+      </div>
+
+      <div class="vehicle-card surface card" role="listitem" tabindex="0" aria-label="Vehicle card placeholder">
+        <h2 style="margin:0 0 .25rem 0;">VehicleCard</h2>
+        <p class="placeholder" style="margin:0">Another sample vehicle.</p>
+        <div style="margin-top:.75rem;display:flex;gap:.5rem">
+          <button class="btn btn-primary" type="button">Select</button>
+          <button class="btn" type="button">Details</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="placeholder" style="margin:1rem 0 0 0">
+      Note: Selecting a vehicle will persist an id under localStorage key "sr:selectedVehicle".
+    </p>
+  </section>
+
+  <style>
+    .vehicle-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+    }
+    .vehicle-card { min-height: 140px; }
+    @media (max-width: 1024px) {
+      .vehicle-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 640px) {
+      .vehicle-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</Layout>
