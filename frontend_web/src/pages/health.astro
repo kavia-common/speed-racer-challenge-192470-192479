@@ -1,0 +1,53 @@
+---
+/**
+ * Healthcheck endpoint for infrastructure probes.
+ * - Returns JSON: { status: "ok", app, version?, path }
+ * - Or plain text "ok" when ?format=text
+ * - No layout chrome; standalone endpoint page.
+ */
+const app = 'frontend_web';
+
+// Best-effort version read from env injected at build-time by hosting (optional).
+// Many hosts expose package version via env or define variables via Vite; if absent we omit version.
+function readEnv(name: string): string | undefined {
+  // Note: esbuild can error on optional chaining on import.meta directly in .astro frontmatter
+  const meta = import.meta as unknown as { env?: Record<string, string | undefined> };
+  const v = meta.env ? meta.env[name] : undefined;
+  return typeof v === 'string' && v.trim().length > 0 ? v.trim() : undefined;
+}
+const version: string | undefined = readEnv('PACKAGE_VERSION');
+
+const url = new URL(Astro.request.url);
+const format = url.searchParams.get('format');
+
+// PUBLIC_INTERFACE
+function buildJson(): Record<string, unknown> {
+  /** Returns the JSON payload for the healthcheck. */
+  const payload: Record<string, unknown> = {
+    status: 'ok',
+    app,
+    path: url.pathname,
+  };
+  if (version) payload.version = version;
+  return payload;
+}
+
+if (format === 'text') {
+  return new Response('ok', {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-cache',
+    },
+  });
+}
+
+return new Response(JSON.stringify(buildJson()), {
+  status: 200,
+  headers: {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-cache',
+  },
+});
+---
+<!-- Endpoint only; no layout markup. -->

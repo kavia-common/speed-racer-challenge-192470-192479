@@ -1,0 +1,31 @@
+---
+/**
+ * Static health alias generator.
+ * If PUBLIC_HEALTHCHECK_PATH is defined and not "/health", generate that path
+ * at build time and issue a 307 redirect to the canonical /health endpoint.
+ *
+ * This keeps the site fully static (no SSR adapter required).
+ */
+export async function getStaticPaths() {
+  const raw = import.meta.env.PUBLIC_HEALTHCHECK_PATH?.trim();
+  if (!raw) return []; // no alias
+  const effective = raw.startsWith('/') ? raw : `/${raw}`;
+  if (effective === '/health') return []; // already canonical
+
+  // Remove a leading slash for param synthesis
+  const withoutSlash = effective.replace(/^\//, '');
+  return [
+    {
+      params: { hc: withoutSlash },
+      props: { /* no props */ },
+    },
+  ];
+}
+
+const params = Astro.params as { hc?: string };
+const requested = '/' + (params.hc ?? '');
+
+// Redirect to canonical /health
+return Astro.redirect('/health', 307);
+---
+<!-- No layout; purely redirect logic. -->

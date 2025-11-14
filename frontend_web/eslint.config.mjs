@@ -9,6 +9,11 @@ export default [
   // TypeScript support
   ...tseslint.configs.recommended,
 
+  // Ignore generated Astro types to prevent parserOptions.project errors on .astro/*
+  {
+    ignores: ['**/.astro/**', 'dist/**'],
+  },
+
   {
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
@@ -20,9 +25,10 @@ export default [
       },
     },
     rules: {
-      // Example custom rules for TS
       '@typescript-eslint/no-unused-vars': ['warn'],
       '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/no-explicit-any': ['error'],
+      '@typescript-eslint/ban-ts-comment': ['warn', { 'ts-expect-error': 'allow-with-description' }],
     },
   },
 

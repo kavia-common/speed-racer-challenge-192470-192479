@@ -1,0 +1,30 @@
+---
+/**
+ * Optional health alias generator.
+ * If PUBLIC_HEALTHCHECK_PATH is defined and not equal to "/health",
+ * this page renders a meta-redirect document that should be reachable at that path
+ * after deploying with a rewrite/route rule. Since Astro cannot dynamically register
+ * files under arbitrary names at runtime, consumers should configure the platform
+ * to map PUBLIC_HEALTHCHECK_PATH to /health, or use the link provided here.
+ *
+ * This page is intentionally minimal and has no layout chrome.
+ */
+const custom = import.meta.env.PUBLIC_HEALTHCHECK_PATH?.trim();
+const effective = custom && custom.startsWith('/') ? custom : (custom ? `/${custom}` : undefined);
+
+// If not provided or it is already /health, render a tiny page pointing to /health.
+const target = '/health';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    {effective && effective !== target ? <meta http-equiv="refresh" content={`0; url=${target}`} /> : null}
+    <meta name="robots" content="noindex" />
+    <title>Health Redirect</title>
+  </head>
+  <body>
+    <p>ok</p>
+    <p><a href={target}>Health</a></p>
+  </body>
+</html>
