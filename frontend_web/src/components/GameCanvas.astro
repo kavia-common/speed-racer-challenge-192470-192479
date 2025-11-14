@@ -1,7 +1,7 @@
 ---
 /**
  * GameCanvas.astro
- * Minimal game canvas scaffolding with a client:load script stub.
+ * Canvas and client-side game engine. Listens for game:* events to start/pause/reset.
  * Renders a responsive canvas with accessible labeling and a data-testid for tests.
  */
 const { ariaLabel = 'Race game canvas' } = Astro.props;
@@ -71,6 +71,7 @@ const { ariaLabel = 'Race game canvas' } = Astro.props;
       laps: 0,
       inputKeyboard: null,
       inputTouch: null,
+      startTime: 0,
     };
 
     // Input
@@ -103,7 +104,6 @@ const { ariaLabel = 'Race game canvas' } = Astro.props;
         ctx.nextCheckpointId = res.nextCheckpointId;
         if (res.lapCompleted) {
           ctx.laps += 1;
-          // For now, just log; HUD wiring will come later
           // eslint-disable-next-line no-console
           console.log(`Lap completed: ${ctx.laps}`);
         }
@@ -145,7 +145,11 @@ const { ariaLabel = 'Race game canvas' } = Astro.props;
       ctx2d.fillStyle = '#111827';
       ctx2d.font = '14px system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial';
       const speed = Math.hypot(ctx.car.velocity.x, ctx.car.velocity.y);
-      ctx2d.fillText(`Speed: ${speed.toFixed(0)} px/s  Lap: ${ctx.laps}`, 16, 24);
+      const elapsedMs = state.time.elapsed;
+      const mm = String(Math.floor(elapsedMs / 60000)).padStart(2, '0');
+      const ss = String(Math.floor((elapsedMs % 60000) / 1000)).padStart(2, '0');
+      const mmm = String(Math.floor(elapsedMs % 1000)).padStart(3, '0');
+      ctx2d.fillText(`Speed: ${speed.toFixed(0)} px/s  Lap: ${ctx.laps}  Time: ${mm}:${ss}.${mmm}`, 16, 24);
     };
 
     const engine = createEngine({
@@ -156,17 +160,55 @@ const { ariaLabel = 'Race game canvas' } = Astro.props;
       targetFPS: 60,
     });
 
-    // Start immediately for now; later can be gated by ControlsPanel
-    engine.start();
+    // Listen for events from ControlsPanel (or other sources)
+    function onStart() {
+      // If engine not running or paused, start/resume
+      const s = engine.getState();
+      if (!s.running) {
+        engineCtx.startTime = performance.now();
+        engine.start();
+      } else if (s.paused) {
+        engine.resume();
+      }
+    }
+    function onPause() {
+      engine.pause();
+    }
+    function onReset() {
+      // Stop and reinitialize the context (simple reset)
+      engine.stop();
+      // Reset car and state
+      engineCtx.car = createCar(140, 140);
+      engineCtx.nextCheckpointId = 0;
+      engineCtx.laps = 0;
+      // Restart render loop without motion until user starts again
+      // We call start->pause to render a fresh frame
+      engine.start();
+      engine.pause();
+    }
+
+    window.addEventListener('game:start', onStart);
+    window.addEventListener('game:pause', onPause);
+    window.addEventListener('game:reset', onReset);
+
+    // Do not auto-start; wait for Start action
+    // engine.start();
 
     // Clean up on pagehide/unload
     const cleanup = () => {
+      window.removeEventListener('game:start', onStart);
+      window.removeEventListener('game:pause', onPause);
+      window.removeEventListener('game:reset', onReset);
       engine.stop();
       engineCtx.inputKeyboard?.cleanup();
       engineCtx.inputTouch?.cleanup();
     };
     window.addEventListener('pagehide', cleanup, { once: true });
     window.addEventListener('beforeunload', cleanup, { once: true });
+
+    // Draw an initial frame by starting and immediately pausing to ensure canvas is painted
+    engine.start();
+    engine.pause();
   }
 
   // Boot

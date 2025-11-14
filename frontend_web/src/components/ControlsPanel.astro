@@ -1,8 +1,8 @@
 ---
 /**
  * ControlsPanel.astro
- * On-screen controls and keyboard hints (no logic yet).
- * Emits accessible buttons for Start, Pause, Reset and shows keyboard guide.
+ * On-screen controls and keyboard hints for Start, Pause, Reset.
+ * Emits CustomEvents so GameCanvas (or any listener) can react.
  */
 const { title = 'Controls' } = Astro.props;
 ---
@@ -13,13 +13,13 @@ const { title = 'Controls' } = Astro.props;
   </header>
 
   <div class="controls-actions">
-    <button class="btn btn-primary" type="button" aria-label="Start race" data-testid="btn-start">
+    <button class="btn btn-primary" type="button" aria-label="Start race" data-testid="btn-start" id="btn-start">
       ▶ Start
     </button>
-    <button class="btn" type="button" aria-label="Pause race" data-testid="btn-pause">
+    <button class="btn" type="button" aria-label="Pause race" data-testid="btn-pause" id="btn-pause">
       ⏸ Pause
     </button>
-    <button class="btn" type="button" aria-label="Reset race" data-testid="btn-reset">
+    <button class="btn" type="button" aria-label="Reset race" data-testid="btn-reset" id="btn-reset">
       ⟲ Reset
     </button>
   </div>
@@ -41,3 +41,37 @@ const { title = 'Controls' } = Astro.props;
   }
   .controls-hints { margin-top: .75rem; }
 </style>
+
+<script type="module" client:load>
+  // Bridge UI buttons to game control events via CustomEvent on window.
+  const startBtn = document.getElementById('btn-start');
+  const pauseBtn = document.getElementById('btn-pause');
+  const resetBtn = document.getElementById('btn-reset');
+
+  function dispatch(type) {
+    window.dispatchEvent(new CustomEvent(`game:${type}`, { bubbles: true }));
+  }
+
+  startBtn?.addEventListener('click', () => dispatch('start'));
+  pauseBtn?.addEventListener('click', () => dispatch('pause'));
+  resetBtn?.addEventListener('click', () => dispatch('reset'));
+
+  // Keyboard convenience: Enter starts/resumes, Space pauses.
+  function onKeydown(e) {
+    if (e.code === 'Enter') {
+      dispatch('start');
+    } else if (e.code === 'Space') {
+      // prevent page scroll when pausing
+      e.preventDefault();
+      dispatch('pause');
+    }
+  }
+  window.addEventListener('keydown', onKeydown);
+
+  // Cleanup when page is hidden/unloaded
+  const cleanup = () => {
+    window.removeEventListener('keydown', onKeydown);
+  };
+  window.addEventListener('pagehide', cleanup, { once: true });
+  window.addEventListener('beforeunload', cleanup, { once: true });
+</script>
