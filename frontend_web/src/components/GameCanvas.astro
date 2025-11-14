@@ -49,35 +49,128 @@ const { ariaLabel = 'Race game canvas' } = Astro.props;
   }
 </style>
 
-<script client:load>
+<script type="module" client:load>
+  import { createEngine } from '../lib/game/engine';
+  import { createCar, integrateCar } from '../lib/game/physics';
+  import { createSingleTrack, renderTrack, checkCheckpointHit } from '../lib/game/track';
+  import { attachKeyboardInput, attachTouchInput } from '../lib/game/input';
+
   // PUBLIC_INTERFACE
-  /** Initializes the canvas context and sets up a basic animation frame loop stub. */
-  function initGameCanvas() {
+  /**
+   * Initializes the game engine on the provided canvas.
+   * Sets up input, a simple track, and one local car with basic arcade physics.
+   */
+  function initGameCanvas(canvas) {
     /** This is a public function. */
+    const engineCtx = {
+      car: createCar(140, 140),
+      track: createSingleTrack(canvas.width, canvas.height, 3),
+      nextCheckpointId: 0,
+      laps: 0,
+      inputKeyboard: null,
+      inputTouch: null,
+    };
+
+    // Input
+    engineCtx.inputKeyboard = attachKeyboardInput(window);
+    engineCtx.inputTouch = attachTouchInput(canvas);
+
+    // Update function: map input to car controls and integrate physics
+    const onUpdate = (dt, ctx) => {
+      const input = ctx.inputKeyboard?.getState() || { left: false, right: false, up: false, down: false, brake: false };
+      const touch = ctx.inputTouch?.getState() || null;
+
+      const effective = {
+        left: input.left || (touch ? touch.left : false),
+        right: input.right || (touch ? touch.right : false),
+        up: input.up || (touch ? touch.up : false),
+        down: input.down || (touch ? touch.down : false),
+        brake: input.brake || (touch ? touch.brake : false),
+      };
+
+      // Map to car inputs
+      ctx.car.steer = (effective.left ? -1 : 0) + (effective.right ? 1 : 0);
+      ctx.car.throttle = effective.up ? 1 : 0;
+      ctx.car.brake = effective.brake || effective.down ? 1 : 0;
+
+      integrateCar(ctx.car, dt);
+
+      // Checkpoint progression and lap counting
+      const res = checkCheckpointHit(ctx.track, ctx.nextCheckpointId, ctx.car.position.x, ctx.car.position.y);
+      if (res.hit) {
+        ctx.nextCheckpointId = res.nextCheckpointId;
+        if (res.lapCompleted) {
+          ctx.laps += 1;
+          // For now, just log; HUD wiring will come later
+          // eslint-disable-next-line no-console
+          console.log(`Lap completed: ${ctx.laps}`);
+        }
+      }
+    };
+
+    // Render function: clear, draw track and simple car
+    const onRender = (ctx2d, dims, state, ctx) => {
+      // Clear
+      ctx2d.clearRect(0, 0, dims.width, dims.height);
+
+      // Subtle background gradient overlay for Ocean Professional theme
+      const grad = ctx2d.createLinearGradient(0, 0, 0, dims.height);
+      grad.addColorStop(0, 'rgba(37, 99, 235, 0.10)');
+      grad.addColorStop(1, 'rgba(249, 250, 251, 1)');
+      ctx2d.fillStyle = grad;
+      ctx2d.fillRect(0, 0, dims.width, dims.height);
+
+      // Track
+      renderTrack(ctx2d, ctx.track);
+
+      // Car (simple triangle)
+      ctx2d.save();
+      ctx2d.translate(ctx.car.position.x, ctx.car.position.y);
+      ctx2d.rotate(ctx.car.heading);
+      ctx2d.fillStyle = '#2563EB';
+      ctx2d.strokeStyle = 'rgba(0,0,0,0.15)';
+      ctx2d.lineWidth = 2;
+      ctx2d.beginPath();
+      ctx2d.moveTo(16, 0);
+      ctx2d.lineTo(-12, 10);
+      ctx2d.lineTo(-12, -10);
+      ctx2d.closePath();
+      ctx2d.fill();
+      ctx2d.stroke();
+      ctx2d.restore();
+
+      // HUD stub text (temporary; dedicated HUD component is separate)
+      ctx2d.fillStyle = '#111827';
+      ctx2d.font = '14px system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial';
+      const speed = Math.hypot(ctx.car.velocity.x, ctx.car.velocity.y);
+      ctx2d.fillText(`Speed: ${speed.toFixed(0)} px/s  Lap: ${ctx.laps}`, 16, 24);
+    };
+
+    const engine = createEngine({
+      canvas,
+      onUpdate,
+      onRender,
+      userContext: engineCtx,
+      targetFPS: 60,
+    });
+
+    // Start immediately for now; later can be gated by ControlsPanel
+    engine.start();
+
+    // Clean up on pagehide/unload
+    const cleanup = () => {
+      engine.stop();
+      engineCtx.inputKeyboard?.cleanup();
+      engineCtx.inputTouch?.cleanup();
+    };
+    window.addEventListener('pagehide', cleanup, { once: true });
+    window.addEventListener('beforeunload', cleanup, { once: true });
   }
 
+  // Boot
   (function setup() {
     const canvas = document.getElementById('game-canvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    // Simple visual to confirm canvas is active (temporary)
-    if (ctx) {
-      ctx.fillStyle = 'rgba(37, 99, 235, 0.12)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#2563EB';
-      ctx.font = '20px system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial';
-      ctx.fillText('GameCanvas mounted (stub)', 24, 40);
-    }
-
-    // Animation loop stub (no game engine yet)
-    let rafId = 0;
-    const loop = () => {
-      // Future: update physics, render track and vehicles
-      rafId = requestAnimationFrame(loop);
-    };
-    rafId = requestAnimationFrame(loop);
-
-    // Clean up on page navigation
-    window.addEventListener('pagehide', () => cancelAnimationFrame(rafId), { once: true });
+    if (!(canvas instanceof HTMLCanvasElement)) return;
+    initGameCanvas(canvas);
   })();
 </script>
