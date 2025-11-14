@@ -1,0 +1,36 @@
+---
+const { url } = Astro.request;
+const pathname = new URL(url).pathname;
+
+const links = [
+  { href: '/', label: 'Home' },
+  { href: '/race', label: 'Race' },
+  { href: '/garage', label: 'Garage' },
+  { href: '/leaderboard', label: 'Leaderboard' },
+];
+---
+
+<header class="navbar">
+  <div class="inner container">
+    <a href="/" class="brand" aria-label="Speed Racer Home" style="display:flex;align-items:center;gap:.5rem">
+      <img src="/assets/logo.svg" alt="App Logo" width="28" height="28" style="display:block" />
+      <strong style="letter-spacing:.2px">Speed Racer</strong>
+    </a>
+
+    <nav class="nav-links" aria-label="Primary">
+      {links.map(link => (
+        <a
+          href={link.href}
+          class={`nav-link ${pathname === link.href ? 'active' : ''}`}
+        >
+          {link.label}
+        </a>
+      ))}
+    </nav>
+
+    <div class="actions" style="display:flex;align-items:center;gap:.5rem">
+      <!-- Keep ThemeToggle if present, but optional to import here by Layout -->
+      <slot name="actions" />
+    </div>
+  </div>
+</header>
